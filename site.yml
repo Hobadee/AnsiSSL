@@ -1,0 +1,38 @@
+---
+# This playbook will aquire/renew LetsEncrypt certificates using Route53 authentication
+# and deploy them to the appropriate servers
+
+
+- name: Initialize vars
+  hosts: all
+  tags:
+    - always
+  tasks:
+    - name: include vars
+      include_vars: "global_vars/config.yml"
+
+
+# Section 1: initialization and enrollment
+- name: Initialize SSL keys and Enroll with ACME
+  hosts: all
+  tags:
+    - generate_pk
+    - enroll
+  roles:
+    - ACMEEnroll
+
+# Section 1.5: ACME Verification and deployment of keys
+- name: Test how we are going to loop certs
+  hosts: all
+  tags:
+    - test
+  roles:
+    - test
+
+# Section 2: ACME Verification and deployment of keys
+- name: Verify Domains with ACME, obtain and deploy keys
+  hosts: all
+  tags:
+    - verify
+  roles:
+    - ACMEVerify

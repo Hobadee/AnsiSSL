@@ -1,0 +1,61 @@
+---
+- name: Check SSL private key directory
+  tags:
+    - generate_pk
+  become: true
+  ansible.builtin.stat:
+    path: "{{ssl_pk_dir}}"
+  register: pkdir
+
+- name: Create SSL directory if it doesn't exists
+  tags:
+    - generate_pk
+  become: true
+  ansible.builtin.file:
+    path: "{{ssl_pk_dir}}"
+    state: directory
+    mode: "0710"
+  when:
+    - not pkdir.stat.exists
+
+- name: Check if SSL private key already exists
+  tags:
+    - generate_pk
+  become: true
+  ansible.builtin.stat:
+    path: "{{ssl_pk_dir}}/{{ssl_pk}}"
+  register: pk
+
+- name: Generate an OpenSSL private key with the default values (4096 bits, RSA) if one doesn't exist yet
+  tags:
+    - generate_pk
+  become: true
+  community.crypto.openssl_privatekey:
+    path: "{{ssl_pk_dir}}/{{ssl_pk}}"
+  when:
+    - pkdir.stat.exists
+    - pkdir.stat.writeable
+    - not pk.stat.exists
+  register: generate_pk_task
+
+- name: Set permissions on the private key
+  tags:
+    - generate_pk
+  become: true
+  ansible.builtin.file:
+    path: "{{ssl_pk_dir}}/{{ssl_pk}}"
+    mode: "0640"
+  when:
+    - generate_pk_task.changed
+
+- name: Make sure account exists and has given contacts. We agree to TOS.
+  tags:
+    - acme_enroll
+  become: true
+  community.crypto.acme_account:
+    account_key_src: "{{ssl_pk_dir}}/{{ssl_pk}}"
+    acme_directory: "{{acme_directory}}"
+    acme_version:  "{{acme_version}}"
+    state: present
+    terms_agreed: yes
+    contact: "{{acme_contacts}}"

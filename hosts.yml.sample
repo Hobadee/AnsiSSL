@@ -1,0 +1,55 @@
+---
+# Each host MAY have a "certs" list.  This is list of several certs we will get
+# Each "certs" arg:
+#   MUST have a "commonName"
+#   MAY have "subjectAltNames" list
+#   MAY have a "dependantServices" list, which will be restarted after sucessful installation of certificates
+all:
+  children:
+    cent7:
+      hosts:
+        host1.example.com:
+          certs:
+            -
+              # CN (Common Name) to request for the cert.  Required.
+              commonName: host1.example.com
+              # Additional SAN (Subject Alternate Names) to request for the cert
+              subjectAltNames:
+                - otherhostname1.example.com
+              # System services which depend on the cert and must be restarted to pick up the new certs
+              dependantServices:
+                - nginx
+
+
+        # The following config will get a cert with the CN of "host2.example.com" and SANs of "foo2.example.com" and "bar2.example.com"
+        # Upon installation of the certs, the "apache2", "nginx", and "mysql" services will be restarted.
+        host2.example.com:
+          certs:
+            -
+              commonName: host2.example.com
+              subjectAltNames:
+                - foo2.example.com
+                - bar2.example.com
+              dependantServices:
+                - apache2
+                - nginx
+                - mysql
+
+
+        # The following config will get 2 certs:
+        #   - CN "foo.host3.example.com", no SANs, restart "nginx" on install
+        #   - CN "bar.host3.example.com", SAN "bar.example.com" and "foobar.host3.example.com", don't restart any services
+        #   - CN "baz.host3.example.com", no SANs, don't restart any services
+        host3.example.com:
+          certs:
+            -
+              commonName: foo.host3.example.com
+              dependantServices:
+                - nginx
+            -
+              commonName: bar.host3.example.com
+              subjectAltNames:
+                - bar.example.com
+                - foobar.host3.example.com
+            -
+              commonName: baz.host3.example.com

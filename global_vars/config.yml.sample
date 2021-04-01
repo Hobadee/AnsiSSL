@@ -1,0 +1,46 @@
+---
+# Vars
+
+# Generally needed vars
+#ansible_user: ansible
+#ansible_python_interpreter: python3
+
+
+# Section 1: initialization and enrollment
+ssl_pk_dir: /etc/ssl/private
+ssl_pk: "ACMEcerts.pem"
+
+
+# ACME Configuration
+acme_directory: https://acme-v02.api.letsencrypt.org/directory           # Live LE Server
+#acme_directory: https://acme-staging-v02.api.letsencrypt.org/directory   # Staging LE Server
+acme_version: 2
+acme_challenge_type: dns-01
+acme_contacts:
+  - "YOUR EMAIL ADDRESS FOR RENEWAL NOTICES"
+
+
+# Section 2: Step 1: CSR Information
+csr_organization: "YOUR COMPANY NAME"
+csr_country: ""
+csr_email: ""
+
+csr_path: /tmp
+crt_path: /tmp
+
+# This should really use Ansible Vault.  Too lazy to figure that out right now.
+aws_access_key: "AWS ACCESS KEY GOES HERE"
+aws_secret_key: "AWS SECRET KEY GOES HERE"
+
+
+# Section 2: Obtain challenges
+
+
+# Section 3: Fullfill challenges
+
+
+# Section 4: Check challenges & Save certificates
+
+
+# Section 5: Push certificates to remote servers
+

@@ -1,0 +1,81 @@
+---
+# tasks file for ACMEVerify
+
+# Step 1: Obtain challenges
+#Generate CSR
+- name: Generate Certificate Signing Requests using OpenSSL
+  become: true
+  community.crypto.openssl_csr:
+    path: "{{csr_path}}/{{item.commonName}}-{{idx}}.csr"
+    privatekey_path: "{{ssl_pk_dir}}/{{ssl_pk}}"
+    country_name: "{{ csr_country | default(omit) }}"
+    organization_name: "{{ csr_organization | default(omit) }}"
+    email_address: "{{ csr_email | default(omit) }}"
+    common_name: "{{ item.commonName }}"
+    # subject_alt_name: "{{ item.subjectAltNames | list }}"
+    subject_alt_name: "{{ item.subjectAltNames | default(None) | map('regex_replace', '^', 'DNS:') | list or omit }}"
+  loop: "{{ certs }}"
+  loop_control:
+    index_var: idx
+  register: CSRs
+
+
+- name: Create ACME challenges for our CSRs
+  become: true
+  community.crypto.acme_certificate:
+    account_key_src: "{{ssl_pk_dir}}/{{ssl_pk}}"
+    modify_account: no
+    src: "{{item.filename}}"
+    cert: "{{crt_path}}/{{item.item.commonName}}{{ ansible_date_time.iso8601_basic_short }}.crt"
+    challenge: "{{acme_challenge_type}}"
+    acme_directory: "{{acme_directory}}"
+    acme_version: "{{acme_version}}"
+    # Renew if the certificate is at least 30 days old
+    remaining_days: 60
+  register: ACME_challenge
+  loop: "{{CSRs.results}}"
+
+- name: Challenge Debug
+  ansible.builtin.debug:
+    msg: "{{ACME_challenge.results}}"
+  #loop: "ACME_challenge.results.challenge_data"
+
+
+# Step 2: Fullfill challenges
+# - community.aws.route53:
+#     zone: sample.com
+#     record: "{{ item.key }}"
+#     type: TXT
+#     ttl: 60
+#     state: present
+#     wait: yes
+#     # Note: item.value is a list of TXT entries, and route53
+#     # requires every entry to be enclosed in quotes
+#     value: "{{ item.value | map('regex_replace', '^(.*)$', '\"\\1\"' ) | list }}"
+#   loop: "{{ sample_com_challenge.challenge_data_dns | dict2items }}"
+#   when: sample_com_challenge is changed
+
+
+# Step 3: Check challenges & Save certificates
+# - name: Let the challenge be validated and retrieve the cert and intermediate certificate
+#   community.crypto.acme_certificate:
+#     account_key_src: /etc/pki/cert/private/account.key
+#     account_email: myself@sample.com
+#     src: /etc/pki/cert/csr/sample.com.csr
+#     cert: /etc/httpd/ssl/sample.com.crt
+#     fullchain: /etc/httpd/ssl/sample.com-fullchain.crt
+#     chain: /etc/httpd/ssl/sample.com-intermediate.crt
+#     challenge: dns-01
+#     acme_directory: https://acme-v01.api.letsencrypt.org/directory
+#     remaining_days: 60
+#     data: "{{ sample_com_challenge }}"
+#   when: sample_com_challenge is changed
+
+
+# Step 3.5: Remove CSRs
+
+
+# Step 4: Push certificates to remote servers
+
+
+# Step 5: restart services to pick up new certs
