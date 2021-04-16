@@ -6,48 +6,52 @@
 #ansible_python_interpreter: python3
 
 
-# Section 1: initialization and enrollment
-ssl_pk_dir: /etc/ssl/private
-ssl_pk: "ACMEcerts.pem"
+acme_dir_base: "/etc/ansissl"
 
 
 # ACME Configuration
-acme_directory: https://acme-v02.api.letsencrypt.org/directory           # Live LE Server
-#acme_directory: https://acme-staging-v02.api.letsencrypt.org/directory   # Staging LE Server
-acme_version: 2
-acme_challenge_type: dns-01
-acme_contacts:
-  - "YOUR EMAIL ADDRESS FOR RENEWAL NOTICES"
+acme_directory_url: acme-v02.api.letsencrypt.org          # Live LE Server
+#acme_directory_url: acme-staging-v02.api.letsencrypt.org   # Staging LE Server
+acme_directory_resource: "/directory"
 # Renew if the certificate is at least 30 days old
 acme_remaining_days: 60
+acme_challenge_type: dns-01
+acme_contacts:    # This is used for renewal/error notices
+  - "mailto:you@yourdomain.com"
 
 
-# Section 2: Step 1: CSR Information
+# CSR Information
 csr_organization: "YOUR COMPANY NAME"
 csr_country: ""
 csr_email: ""
 
-csr_path: /tmp
-crt_path: /tmp
 
 # This should really use Ansible Vault.  Too lazy to figure that out right now.
 aws_access_key: "AWS ACCESS KEY GOES HERE"
 aws_secret_key: "AWS SECRET KEY GOES HERE"
 
 
-# Section 2: Obtain challenges
-
-
-# Section 3: Fullfill challenges
-
-
-# Section 4: Check challenges & Save certificates
-
+# We will hopefully be getting rid of this in a later version.  For now we need it.
 json_dir: "/tmp"
 json_script: "parseChallengeR53Zone.py"
 json_acme: "acmechallenge.json"
 json_r53: "r53zones.json"
 
 
-# Section 5: Push certificates to remote servers
+#
+# You shouldn't need to edit anything below this line unless things *REALLY* change or you have a special setup
+#
+acme_dir_account: "account" # Subdir based off {{ acme_directory_url }}
+acme_account_pk: "ACME_account.pem"
+acme_dir_certs: "certs" # Subdirs based off certificate CN
+acme_dir_certs_live: "live" # Current certs are symlinked here
+acme_dir_certs_archive: "archive" # All certs will go in here.  Current ones symlink to "live"
+acme_dir_certs_csrs: "csrs" # Cert CSRs go here
 
+acme_directory_method: "https://"
+acme_version: 2
+
+#
+# DON'T EDIT ANYTHING BELOW THIS LINE!  I MEAN IT!
+#
+acme_directory: "{{ acme_directory_method }}{{ acme_directory_url }}{{ acme_directory_resource }}"

@@ -1,79 +1,40 @@
 ---
 
 
-# TODO:
-# - Fix up directories and file structures
-# - Replace static directory/name joins with the jinja os.join or whatever it is
-# - Proper place for SSL certs/keys/accounts/etc...
-
-# Directory ideas...
-  # - name: "Create required directories in /etc/letsencrypt"
-  #   file:
-  #     path: "/etc/letsencrypt/{{ item }}"
-  #     state: directory
-  #     owner: root
-  #     group: root
-  #     mode: u=rwx,g=x,o=x
-  #   with_items:
-  #   - account   # LE account key
-  #   - certs     # Contains active certs
-  #   - csrs      # Contains CSRs
-  #   - keys      # Contains cert private key
-
-
-- name: Check SSL private key directory
-  tags:
-    - generate_pk
-  become: true
-  ansible.builtin.stat:
-    path: "{{ ssl_pk_dir }}"
-  register: pkdir
-
-
-- name: Create SSL directory if it doesn't exists
-  tags:
-    - generate_pk
+- name: Create AnsiSSL directory
   become: true
   ansible.builtin.file:
-    path: "{{ ssl_pk_dir }}"
+    path: "{{ acme_dir_base }}"
     state: directory
-    mode: "0710"
-  when:
-    - not pkdir.stat.exists
+    mode: "0755"
 
 
-- name: Check if SSL private key already exists
-  tags:
-    - generate_pk
+- name: Create ACME sub directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ [ acme_dir_base, item ] | path_join }}"
+    state: directory
+    mode: "0700"
+  with_items:
+    - "{{ acme_dir_account }}"
+    - "{{ [ acme_dir_account, acme_directory_url ] | path_join }}"
+    - "{{ acme_dir_certs }}"
+
+
+- name: Check if ACME account private key already exists
   become: true
   ansible.builtin.stat:
-    #path: "{{ [ssl_pk_dir, ssl_pk] | path_join }}.pem"
-    path: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
-  register: pk
+    path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_account_pk ] | path_join }}"
+  register: result
 
 
-- name: Generate an OpenSSL private key with the default values (4096 bits, RSA) if one doesn't exist yet
-  tags:
-    - generate_pk
+- name: Generate an ACME account private key with the default values (4096 bits, RSA) if one doesn't exist yet
   become: true
   community.crypto.openssl_privatekey:
-    path: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
+    path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_account_pk ] | path_join }}"
+    mode: "0600"
   when:
-    - pkdir.stat.exists
-    - pkdir.stat.writeable
-    - not pk.stat.exists
-  register: generate_pk_task
-
-
-- name: Set permissions on the private key
-  tags:
-    - generate_pk
-  become: true
-  ansible.builtin.file:
-    path: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
-    mode: "0640"
-  when:
-    - generate_pk_task.changed
+    - not result.stat.exists
 
 
 - name: Make sure account exists and has given contacts. We agree to TOS.
@@ -81,7 +42,7 @@
     - acme_enroll
   become: true
   community.crypto.acme_account:
-    account_key_src: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
+    account_key_src: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_account_pk ] | path_join }}"
     acme_directory: "{{ acme_directory }}"
     acme_version:  "{{ acme_version }}"
     state: present
