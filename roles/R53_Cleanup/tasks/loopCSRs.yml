@@ -1,0 +1,29 @@
+#
+# We run this once for every CSR we have
+#
+# loop_var:  "CSR"
+# index_var: "CSR_idx"
+#
+
+# Each Certificate Signing Requests (CSR) may have multiple challenges.  Loop through them.
+- name: Loop through CSR Challenges
+  include_tasks: loopChallenges.yml
+  loop: "{{ CSR['challenge_data'] | dict2items }}"
+  loop_control:
+    loop_var: "challenge"
+    index_var: "challenge_idx"
+
+
+# Alternatively, we can probably run this right here.  I stole this snippet which does the loop locally instead.
+# - community.aws.route53:
+#     zone: sample.com
+#     record: "{{ item.key }}"
+#     type: TXT
+#     ttl: 60
+#     state: present
+#     wait: yes
+#     # Note: item.value is a list of TXT entries, and route53
+#     # requires every entry to be enclosed in quotes
+#     value: "{{ item.value | map('regex_replace', '^(.*)$', '\"\\1\"' ) | list }}"
+#   loop: "{{ sample_com_challenge.challenge_data_dns | dict2items }}"
+#   when: sample_com_challenge is changed

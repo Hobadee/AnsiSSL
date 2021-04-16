@@ -1,0 +1,40 @@
+---
+# tasks file for ACMEVerify
+
+
+# Check if we have PKs for each cert.  If not, create PKs
+
+
+# Step 1: Obtain challenges
+#Generate CSR
+- name: Generate Certificate Signing Requests using OpenSSL
+  become: true
+  community.crypto.openssl_csr:
+    path: "{{ csr_path }}/{{ idx }}-{{ item.commonName }}.csr"
+    privatekey_path: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
+    country_name: "{{ csr_country | default(omit) }}"
+    organization_name: "{{ csr_organization | default(omit) }}"
+    email_address: "{{ csr_email | default(omit) }}"
+    common_name: "{{ item.commonName }}"
+    # subject_alt_name: "{{ item.subjectAltNames | list }}"
+    subject_alt_name: "{{ item.subjectAltNames | default(None) | map('regex_replace', '^', 'DNS:') | list or omit }}"
+  loop: "{{ certs }}"
+  loop_control:
+    index_var: idx
+  register: CSRs
+
+
+- name: Create ACME challenges for our CSRs
+  become: true
+  community.crypto.acme_certificate:
+    modify_account: no
+    account_key_src: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
+    src: "{{ item.filename }}"
+    cert: "{{ crt_path }}/{{ item.item.commonName }}{{ ansible_date_time.iso8601_basic_short }}.crt"
+    challenge: "{{ acme_challenge_type }}"
+    acme_directory: "{{ acme_directory }}"
+    acme_version: "{{ acme_version }}"
+    remaining_days: "{{ acme_remaining_days }}"
+  register: ACME_challenge
+  loop: "{{ CSRs.results }}"
+

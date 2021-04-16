@@ -1,0 +1,9 @@
+---
+# tasks file for RestartServices
+
+
+
+# Step 5: restart services to pick up new certs
+# This should be done by an Ansible handler
+# This should also be handled in either the master playbook, or a different role
+# See: https://docs.ansible.com/ansible/latest/user_guide/playbooks_handlers.html

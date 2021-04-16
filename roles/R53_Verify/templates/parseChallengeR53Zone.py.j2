@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+import json
+import re
+
+# Open the ACME Challenge JSON from Ansible
+f1=open('{{ json_dir }}/{{ json_acme }}', 'r')
+challenges = json.load(f1)
+f1.close
+
+# Load in the JSON list of R53 zones from Ansible
+f2=open('{{ json_dir }}/{{ json_r53 }}')
+r53zones = json.load(f2)
+f2.close
+
+# We can have multiple separate certificate requests; iterate through them
+for challenge in challenges['results']:
+    # Each certificate may have multiple challenges; iterate through them
+    for key in challenge['challenge_data']:
+        # Default the R53 zone to "False"
+        challenge['challenge_data'][key]['dns-01']['R53zone'] = False
+        challenge['challenge_data'][key]['dns-01']['R53zoneID'] = False
+        # Iterate all our R53 zones until we find a zone that can be used for this challenge
+        # Note: We just take the first match, not necessarily the best match.  (In case of subdomains)
+        for zone in r53zones['HostedZones']:
+            # Remove the trailing period and escape Regex characters from the zone name.
+            e_zone = re.escape(zone['Name'][:-1])
+            # Append a "$" on the domain to ensure we don't match in the middle of a name somehow
+            e_zone = e_zone + "$"
+            # Search for the R53 domain in the challenge domain.
+            if re.search(e_zone, key):
+                # If the domain matches, save the R53 zone
+                challenge['challenge_data'][key]['dns-01']['R53zone'] = zone['Name']
+                challenge['challenge_data'][key]['dns-01']['R53zoneID'] = zone['Id']
+                break
+
+# Save our modified JSON so we can re-import it into Ansible
+f1=open('{{ json_dir }}/{{ json_acme }}', 'w')
+json.dump(challenges, f1)
+f1.close
+
+quit(0)

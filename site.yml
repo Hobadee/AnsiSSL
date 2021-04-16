@@ -19,20 +19,27 @@
     - generate_pk
     - enroll
   roles:
-    - ACMEEnroll
-
-# Section 1.5: ACME Verification and deployment of keys
-- name: Test how we are going to loop certs
-  hosts: all
-  tags:
-    - test
-  roles:
-    - test
+    - ACME_Enroll
 
 # Section 2: ACME Verification and deployment of keys
-- name: Verify Domains with ACME, obtain and deploy keys
+- name: Generate CSRs and ACME challenges
   hosts: all
   tags:
     - verify
   roles:
-    - ACMEVerify
+    - ACME_CSR
+
+# Section 3: Use R53 to verify challenges
+- name: Verify ACME challenges with R53
+  hosts: all
+  tags:
+    - verify
+  roles:
+    - R53_Verify
+
+- name: Verify ACME challenges
+  hosts: all
+  tags:
+    - verify
+  roles:
+    - ACME_Verify

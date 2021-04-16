@@ -1,0 +1,75 @@
+---
+# tasks file for R53Verify
+
+
+- name: Write challenges to a temp file
+  ansible.builtin.copy:
+    content: "{{ ACME_challenge }}"
+    dest: "{{ json_dir }}/{{ json_acme }}"
+    mode: '0600'
+  
+
+- name: Get all R53 hosted zones
+  community.aws.route53_info:
+    aws_access_key: "{{ aws_access_key }}"
+    aws_secret_key: "{{ aws_secret_key }}"
+    query: hosted_zone
+  register: R53_zones
+
+
+- name: Write R53 zones to a temp file
+  ansible.builtin.copy:
+    content: "{{ R53_zones }}"
+    dest: "{{ json_dir }}/{{ json_r53 }}"
+    mode: '0600'
+
+
+- name: Write python script we need to run
+  ansible.builtin.template:
+    src: "templates/parseChallengeR53Zone.py.j2"
+    dest: "{{ json_dir }}/{{ json_script }}"
+    mode: +x
+
+
+# Script takes the ACME challenges, and adds the R53 ZoneID we need to use to fulfill them.
+- name: Run python script to parse ACME challenges
+  ansible.builtin.command:
+    argv:
+    - "{{ json_dir }}/{{ json_script }}"
+
+
+- name: Read in modified ACME challenges
+  ansible.builtin.command:
+    argv:
+      - "cat"
+      - "{{ json_dir }}/{{ json_acme }}"
+  register: result
+
+
+- name: save the Json data to a Variable as a Fact
+  set_fact:
+    ACME_challenge_muxed: "{{ result.stdout | from_json }}"
+
+
+- name: Delete the mess we just made
+  ansible.builtin.file:
+    path: "{{ json_dir }}/{{ item }}"
+    state: absent
+  tags:
+    - cleanup
+    - cleanup_JSON
+    - cleanup_scripts
+  with_items:
+    - "{{ json_script }}"
+    - "{{ json_acme }}"
+    - "{{ json_r53 }}"
+
+
+# We may have several Certificate Signing Requests (CSR) for each server.  Loop through them.
+- name: Loop through CSRs
+  include_tasks: loopCSRs.yml
+  loop: "{{ ACME_challenge_muxed.results }}"
+  loop_control:
+    loop_var: "CSR"
+    index_var: "CSR_idx"
+

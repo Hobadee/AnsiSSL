@@ -4,6 +4,8 @@
 #   MUST have a "commonName"
 #   MAY have "subjectAltNames" list
 #   MAY have a "dependantServices" list, which will be restarted after sucessful installation of certificates
+#   The "commonName" MUST be unique to a host  (Certificates will be named/stored based on their commonName)
+#   The "commonName" MAY be duplicated on different hosts
 all:
   children:
     cent7:

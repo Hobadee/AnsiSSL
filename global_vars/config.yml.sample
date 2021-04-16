@@ -18,6 +18,8 @@ acme_version: 2
 acme_challenge_type: dns-01
 acme_contacts:
   - "YOUR EMAIL ADDRESS FOR RENEWAL NOTICES"
+# Renew if the certificate is at least 30 days old
+acme_remaining_days: 60
 
 
 # Section 2: Step 1: CSR Information
@@ -40,6 +42,11 @@ aws_secret_key: "AWS SECRET KEY GOES HERE"
 
 
 # Section 4: Check challenges & Save certificates
+
+json_dir: "/tmp"
+json_script: "parseChallengeR53Zone.py"
+json_acme: "acmechallenge.json"
+json_r53: "r53zones.json"
 
 
 # Section 5: Push certificates to remote servers

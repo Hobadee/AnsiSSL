@@ -1,0 +1,12 @@
+---
+# tasks file for R53Verify
+
+# We may have several Certificate Signing Requests (CSR) for each server.  Loop through them.
+- name: Loop through CSRs
+  include_tasks: loopCSRs.yml
+  # loop: "{{ ACME_challenge.results }}"
+  loop: "{{ ACME_challenge }}"
+  loop_control:
+    loop_var: "CSR"
+    index_var: "CSR_idx"
+
