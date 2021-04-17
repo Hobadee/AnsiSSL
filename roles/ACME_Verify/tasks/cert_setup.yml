@@ -1,0 +1,50 @@
+---
+#
+# loop_var: cert
+#
+
+
+# Symlink new certs into the live dir
+- name: Symlink certificates into the live directory for CN:{{ cert['item']['item']['invocation']['module_args']['common_name'] }}
+  become: true
+  ansible.builtin.file:
+    state: link
+    force: yes
+    src: >-
+      {{
+      [ acme_dir_base,
+      acme_dir_certs,
+      cert['item']['item']['invocation']['module_args']['common_name'],
+      acme_dir_certs_archive,
+      (timestamp +'.'+ item)
+      ] | path_join }}
+    dest: >-
+      {{
+      [ acme_dir_base,
+      acme_dir_certs,
+      cert['item']['item']['invocation']['module_args']['common_name'],
+      acme_dir_certs_live,
+      item
+      ] | path_join }}
+  loop:
+    - "{{ acme_key_cert }}"
+    - "{{ acme_key_chain }}"
+    - "{{ acme_key_full }}"
+    - "{{ acme_key_priv }}"
+
+
+# Remove CSRs
+- name: Remove CSR for CN:{{ cert['item']['item']['invocation']['module_args']['common_name'] }}
+  become: true
+  ansible.builtin.file:
+    state: "absent"
+    force: yes
+    path: >-
+      "{{
+      [ acme_dir_base,
+      acme_dir_certs,
+      cert['item']['item']['invocation']['module_args']['common_name'],
+      acme_dir_certs_csrs,
+      (timestamp + ext_csr)
+      ] | path_join }}"
+

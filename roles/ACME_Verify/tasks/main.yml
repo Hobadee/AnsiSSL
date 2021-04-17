@@ -6,46 +6,25 @@
   become: true
   community.crypto.acme_certificate:
     modify_account: no
-    account_key_src: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
-    src: "{{ item.item.filename }}"
+    account_key_src: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_key_account ] | path_join }}"
+    csr: "{{ [ acme_dir_base, acme_dir_certs, item.item.item.commonName, acme_dir_certs_csrs, timestamp ] | path_join }}{{ ext_csr }}"
+    dest: "{{ [ acme_dir_base, acme_dir_certs, item.item.item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_cert) ] | path_join }}"
+    chain_dest: "{{ [ acme_dir_base, acme_dir_certs, item.item.item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_chain) ] | path_join }}"
+    fullchain_dest: "{{ [ acme_dir_base, acme_dir_certs, item.item.item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_full) ] | path_join }}"
     challenge: "{{ acme_challenge_type }}"
     acme_directory: "{{ acme_directory }}"
     acme_version: "{{ acme_version }}"
     remaining_days: "{{ acme_remaining_days }}"
-    dest: "{{ crt_path }}/{{ item.item.item.commonName }}{{ ansible_date_time.iso8601_basic_short }}.crt"
-    chain_dest: "{{ crt_path }}/{{ item.item.item.commonName }}{{ ansible_date_time.iso8601_basic_short }}-intermediate.crt"
-    fullchain_dest: "{{ crt_path }}/{{ item.item.item.commonName }}{{ ansible_date_time.iso8601_basic_short }}-fullchain.crt"
     data: "{{ item }}"
   when: ACME_challenge is changed
   loop: "{{ ACME_challenge.results }}"
-  register: result
-# This works, but currently we use the same PK for our ACME account and our certs.  We need seperate PKs for each.
+  register: ACME_result
 
 
+- name: Finish setup of certificates; Symlink and cleanup
+  include_tasks: cert_setup.yml
+  tags: symlink
+  loop: "{{ ACME_result.results }}"
+  loop_control:
+    loop_var: "cert"
 
-# Step 3: Check challenges & Save certificates
-# - name: Let the challenge be validated and retrieve the cert and intermediate certificate
-#   community.crypto.acme_certificate:
-#     account_key_src: /etc/pki/cert/private/account.key
-#     account_email: myself@sample.com
-#     src: /etc/pki/cert/csr/sample.com.csr
-#     cert: /etc/httpd/ssl/sample.com.crt
-#     fullchain: /etc/httpd/ssl/sample.com-fullchain.crt
-#     chain: /etc/httpd/ssl/sample.com-intermediate.crt
-#     challenge: dns-01
-#     acme_directory: https://acme-v01.api.letsencrypt.org/directory
-#     remaining_days: 60
-#     data: "{{ sample_com_challenge }}"
-#   when: sample_com_challenge is changed
-
-
-# Step 3.2: Optionally copy certs to local Ansible machine
-#  - name: Copy certs to local ansible machine
-#   ansible.builtin.fetch:
-#     src: /etc/httpd/ssl/sample.com.crt
-#   tags:
-#     - never
-#     - localCerts
-
-
-# Step 3.5: Remove CSRs
