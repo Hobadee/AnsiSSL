@@ -14,8 +14,7 @@
 #     index_var: "challenge_idx"
 
 
-
-- name: Fullfill ACME challenge in R53
+- name: Fullfill ACME challenges in R53 for CSR CN:{{ CSR['item']['invocation']['module_args']['common_name'] }}
   community.aws.route53:
     aws_access_key: "{{ aws_access_key }}"
     aws_secret_key: "{{ aws_secret_key }}"
