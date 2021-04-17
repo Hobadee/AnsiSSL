@@ -1,0 +1,17 @@
+---
+#
+# loop_var: cert
+#
+
+
+- name: Create ACME sub directories for CN:{{ cert.commonName }}
+  become: true
+  ansible.builtin.file:
+    path: "{{ [ acme_dir_base, acme_dir_certs, cert.commonName, item ] | path_join }}"
+    state: directory
+    mode: "0700"
+  loop:
+    - "{{ acme_dir_certs_csrs }}"
+    - "{{ acme_dir_certs_archive }}"
+    - "{{ acme_dir_certs_live }}"
+

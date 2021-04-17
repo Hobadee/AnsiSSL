@@ -42,11 +42,20 @@ json_r53: "r53zones.json"
 # You shouldn't need to edit anything below this line unless things *REALLY* change or you have a special setup
 #
 acme_dir_account: "account" # Subdir based off {{ acme_directory_url }}
-acme_account_pk: "ACME_account.pem"
 acme_dir_certs: "certs" # Subdirs based off certificate CN
-acme_dir_certs_live: "live" # Current certs are symlinked here
-acme_dir_certs_archive: "archive" # All certs will go in here.  Current ones symlink to "live"
 acme_dir_certs_csrs: "csrs" # Cert CSRs go here
+acme_dir_certs_archive: "archive" # All certs will go in here.  Current ones symlink to "live"
+acme_dir_certs_live: "live" # Current certs are symlinked here
+
+ext_csr: ".csr"
+ext_pk: ".pem"
+ext_cert: ".pem"
+
+acme_key_account: "ACME_account{{ ext_pk }}"
+acme_key_cert: "cert{{ ext_cert }}"
+acme_key_chain: "chain{{ ext_cert }}"
+acme_key_full: "fullchain{{ ext_cert }}"
+acme_key_priv: "privkey{{ ext_pk }}"
 
 acme_directory_method: "https://"
 acme_version: 2

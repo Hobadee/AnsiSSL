@@ -2,21 +2,42 @@
 # tasks file for ACMEVerify
 
 
-# Check if we have PKs for each cert.  If not, create PKs
+# In the future we need to check for a non-verified CSR and set the timestamp equal to
+# that if so. This will have the effect of resuming an in-process CSR.
+# For now we will go the lazier way and just force a new one.  Hope last one ran fine!
+# Also note, we generate a new CSR regardless of the {{ acme_remaining_days }} status
+# We need to check for this and run/skip based on this.
+# Workaround for now might be to clean up all CSRs at the end of our run?
+- name: Set timestamp to use
+  ansible.builtin.set_fact:
+    timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
 
 
-# Step 1: Obtain challenges
-#Generate CSR
+- name: Create subdirs for each CN
+  include_tasks: acme_subdirs.yml
+  loop: "{{ certs }}"
+  loop_control:
+    loop_var: "cert"
+
+
+- name: Generate a private key with the default values (4096 bits, RSA) if one doesn't exist yet
+  become: true
+  community.crypto.openssl_privatekey:
+    path: "{{ [ acme_dir_base, acme_dir_certs, item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_priv) ] | path_join }}"
+    mode: "0600"
+  loop: "{{ certs }}"
+
+
+
 - name: Generate Certificate Signing Requests using OpenSSL
   become: true
   community.crypto.openssl_csr:
-    path: "{{ csr_path }}/{{ idx }}-{{ item.commonName }}.csr"
-    privatekey_path: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
+    path: "{{ [ acme_dir_base, acme_dir_certs, item.commonName, acme_dir_certs_csrs, timestamp ] | path_join }}{{ ext_csr }}"
+    privatekey_path: "{{ [ acme_dir_base, acme_dir_certs, item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_priv) ] | path_join }}"
     country_name: "{{ csr_country | default(omit) }}"
     organization_name: "{{ csr_organization | default(omit) }}"
     email_address: "{{ csr_email | default(omit) }}"
     common_name: "{{ item.commonName }}"
-    # subject_alt_name: "{{ item.subjectAltNames | list }}"
     subject_alt_name: "{{ item.subjectAltNames | default(None) | map('regex_replace', '^', 'DNS:') | list or omit }}"
   loop: "{{ certs }}"
   loop_control:
@@ -28,9 +49,11 @@
   become: true
   community.crypto.acme_certificate:
     modify_account: no
-    account_key_src: "{{ ssl_pk_dir }}/{{ ssl_pk }}"
-    src: "{{ item.filename }}"
-    cert: "{{ crt_path }}/{{ item.item.commonName }}{{ ansible_date_time.iso8601_basic_short }}.crt"
+    account_key_src: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_key_account ] | path_join }}"
+    csr: "{{ [ acme_dir_base, acme_dir_certs, item.item.commonName, acme_dir_certs_csrs, timestamp ] | path_join }}{{ ext_csr }}"
+    dest: "{{ [ acme_dir_base, acme_dir_certs, item.item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_cert) ] | path_join }}"
+    fullchain_dest: "{{ [ acme_dir_base, acme_dir_certs, item.item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_full) ] | path_join }}"
+    chain_dest: "{{ [ acme_dir_base, acme_dir_certs, item.item.commonName, acme_dir_certs_archive, (timestamp +'.'+ acme_key_chain) ] | path_join }}"
     challenge: "{{ acme_challenge_type }}"
     acme_directory: "{{ acme_directory }}"
     acme_version: "{{ acme_version }}"

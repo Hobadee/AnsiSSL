@@ -24,14 +24,14 @@
 - name: Check if ACME account private key already exists
   become: true
   ansible.builtin.stat:
-    path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_account_pk ] | path_join }}"
+    path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_key_account ] | path_join }}"
   register: result
 
 
 - name: Generate an ACME account private key with the default values (4096 bits, RSA) if one doesn't exist yet
   become: true
   community.crypto.openssl_privatekey:
-    path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_account_pk ] | path_join }}"
+    path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_key_account ] | path_join }}"
     mode: "0600"
   when:
     - not result.stat.exists
@@ -42,7 +42,7 @@
     - acme_enroll
   become: true
   community.crypto.acme_account:
-    account_key_src: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_account_pk ] | path_join }}"
+    account_key_src: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_key_account ] | path_join }}"
     acme_directory: "{{ acme_directory }}"
     acme_version:  "{{ acme_version }}"
     state: present
