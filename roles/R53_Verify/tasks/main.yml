@@ -5,7 +5,7 @@
 - name: Write challenges to a temp file
   ansible.builtin.copy:
     content: "{{ ACME_challenge }}"
-    dest: "{{ json_dir }}/{{ json_acme }}"
+    dest: "{{ [ json_dir, json_acme ] | path_join }}"
     mode: '0600'
   
 
@@ -20,14 +20,14 @@
 - name: Write R53 zones to a temp file
   ansible.builtin.copy:
     content: "{{ R53_zones }}"
-    dest: "{{ json_dir }}/{{ json_r53 }}"
+    dest: "{{ [ json_dir, json_r53 ] | path_join }}"
     mode: '0600'
 
 
 - name: Write python script we need to run
   ansible.builtin.template:
     src: "templates/parseChallengeR53Zone.py.j2"
-    dest: "{{ json_dir }}/{{ json_script }}"
+    dest: "{{ [ json_dir, json_script] | path_join }}"
     mode: +x
 
 
@@ -35,14 +35,14 @@
 - name: Run python script to parse ACME challenges
   ansible.builtin.command:
     argv:
-    - "{{ json_dir }}/{{ json_script }}"
+    - "{{ [ json_dir, json_script ] | path_join }}"
 
 
 - name: Read in modified ACME challenges
   ansible.builtin.command:
     argv:
       - "cat"
-      - "{{ json_dir }}/{{ json_acme }}"
+      - "{{ [ json_dir, json_acme ] | path_join }}"
   register: result
 
 
@@ -53,7 +53,7 @@
 
 - name: Delete the mess we just made
   ansible.builtin.file:
-    path: "{{ json_dir }}/{{ item }}"
+    path: "{{ [ json_dir, item ] | path_join }}"
     state: absent
   tags:
     - cleanup
