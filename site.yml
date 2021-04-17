@@ -18,6 +18,7 @@
   tags:
     - generate_pk
     - enroll
+    - ACME_Enroll
   roles:
     - ACME_Enroll
 
@@ -26,6 +27,7 @@
   hosts: all
   tags:
     - verify
+    - ACME_CSR
   roles:
     - ACME_CSR
 
@@ -34,6 +36,7 @@
   hosts: all
   tags:
     - verify
+    - R53_Verify
   roles:
     - R53_Verify
 
@@ -41,5 +44,6 @@
   hosts: all
   tags:
     - verify
+    - ACME_Verify
   roles:
     - ACME_Verify
