@@ -26,6 +26,7 @@
     # We could significantly speed things up by not waiting for DNS to propagate, but
     # we run the risk of not having the challenge ready in time for LE to verify it.
     wait: yes
+    overwrite: yes
     value: "\"{{ challenge.value['dns-01']['resource_value'] }}\""
   loop: "{{ CSR['challenge_data'] | dict2items }}"
   loop_control:
