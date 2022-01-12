@@ -9,6 +9,9 @@
     mode: '0600'
   
 
+# Need the following libs on Debian:
+# - python-boto3
+# - python3-boto3
 - name: Get all R53 hosted zones
   community.aws.route53_info:
     aws_access_key: "{{ aws_access_key }}"

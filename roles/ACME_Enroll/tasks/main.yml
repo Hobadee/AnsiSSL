@@ -27,7 +27,10 @@
     path: "{{ [ acme_dir_base, acme_dir_account, acme_directory_url, acme_key_account ] | path_join }}"
   register: result
 
-
+# We need the following libs to be installed on Debian:
+# - No: python3-crypto
+# - No: python-cryptography  <-- This might work with the default python2.  Doesn't work with python3
+# - Yes: python3-cryptography
 - name: Generate an ACME account private key with the default values (4096 bits, RSA) if one doesn't exist yet
   become: true
   community.crypto.openssl_privatekey:

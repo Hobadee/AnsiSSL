@@ -7,3 +7,12 @@
 # This should be done by an Ansible handler
 # This should also be handled in either the master playbook, or a different role
 # See: https://docs.ansible.com/ansible/latest/user_guide/playbooks_handlers.html
+
+
+# Lazy non-handler method for now...
+# - name: Restart Services
+#   become: true
+#   ansible.builtin.systemd:
+#     name: "{{ item }}"
+#     state: restarted
+#   loop: "{{ dependantServices }}"
